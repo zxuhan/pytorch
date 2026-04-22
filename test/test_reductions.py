@@ -2357,6 +2357,27 @@ class TestReductions(TestCase):
             ):
                 torch.nanmean(t)
 
+    @onlyCPU
+    @dtypes(*integral_types_and(torch.bool))
+    def test_nanmean_integral_dtype_arg(self, device, dtype):
+        # A float input with an integral ``dtype`` argument must error out
+        # regardless of whether the input is empty. Previously the empty path
+        # silently returned tensor(nan); see #131043.
+        shapes = [(), (0,), (3,), (2, 0, 3)]
+        for shape in shapes:
+            t = make_tensor(shape, dtype=torch.float32, device=device)
+            with self.assertRaisesRegex(
+                RuntimeError,
+                r"nanmean\(\): integral types and 'Bool' are not supported for the `dtype` argument"
+            ):
+                torch.nanmean(t, dtype=dtype)
+            out = torch.empty((), dtype=dtype, device=device)
+            with self.assertRaisesRegex(
+                RuntimeError,
+                r"nanmean\(\): integral types and 'Bool' are not supported for the `dtype` argument"
+            ):
+                torch.nanmean(t, dtype=dtype, out=out)
+
     @skipIfMPS
     @precisionOverride({torch.float16: 1e-2, torch.bfloat16: 1e-2})
     @dtypes(*set(all_types_and(torch.half, torch.bfloat16)) - {torch.uint8})
